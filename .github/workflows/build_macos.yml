@@ -3,13 +3,14 @@ name: Build Mochi Companion (macOS & Windows)
 on:
   push:
     branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-macos:
-    name: Build macOS Application
+    name: Build macOS Application (.dmg)
     runs-on: macos-latest
 
     steps:
@@ -31,14 +32,29 @@ jobs:
       - name: Build macOS Release (.app)
         run: flutter build macos --release
 
-      - name: Package App into ZIP
+      - name: Package App into Single .DMG Installer File
         run: |
           cd build/macos/Build/Products/Release
-          zip -r Mochi-Companion-macOS.zip bot_companion.app
+          mkdir dmg_root
+          cp -r bot_companion.app dmg_root/
+          ln -s /Applications dmg_root/Applications
+          hdiutil create -volname "Mochi Companion" -srcfolder dmg_root -ov -format UDZO Mochi-Companion-macOS.dmg
 
       - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Mochi-Companion-macOS
-          path: build/macos/Build/Products/Release/Mochi-Companion-macOS.zip
+          name: Mochi-Companion-macOS-DMG
+          path: build/macos/Build/Products/Release/Mochi-Companion-macOS.dmg
           retention-days: 14
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "Mochi Desktop Companion v1.0.0"
+          body: |
+            ### Official Download for macOS
+            1. Download **`Mochi-Companion-macOS.dmg`** below.
+            2. Double-click the file and drag **bot_companion** into **Applications**.
+            3. Plug Mochi into your Mac via USB and run!
+          files: build/macos/Build/Products/Release/Mochi-Companion-macOS.dmg
