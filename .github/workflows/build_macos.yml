@@ -1,0 +1,44 @@
+name: Build Mochi Companion (macOS & Windows)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: Build macOS Application
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build macOS Release (.app)
+        run: flutter build macos --release
+
+      - name: Package App into ZIP
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r Mochi-Companion-macOS.zip bot_companion.app
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mochi-Companion-macOS
+          path: build/macos/Build/Products/Release/Mochi-Companion-macOS.zip
+          retention-days: 14
